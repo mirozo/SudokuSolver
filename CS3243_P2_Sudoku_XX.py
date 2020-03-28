@@ -51,18 +51,22 @@ class Sudoku(object):
     def solve(self):
         # TODO: Write your code here
         
-        assignment = dict()
+        if self.preprocess():
 
-        #initialise assignment
-        for variable in self.variables:
-            if len(self.domains[variable]) == 1:
-                assignment[variable] = self.domains[variable][0]
+            if not self.is_solved():
+                assignment = dict()
 
-        assignment = self.backtrack(assignment)
-        
-        for var in self.domains:
-            self.domains[var] = assignment[var]
+                #initialise assignment
+                for variable in self.variables:
+                    if len(self.domains[variable]) == 1:
+                        assignment[variable] = self.domains[variable][0]
 
+                assignment = self.backtrack(assignment)
+                
+                for var in self.domains:
+                    self.domains[var] = assignment[var]
+        else:
+            raise ValueError("Failed")
         count = 0
         for i in range(9):
             for j in range(9):
@@ -79,6 +83,38 @@ class Sudoku(object):
     # However, ensure all the classes/functions are in this file ONLY
     # Note that our evaluation scripts only call the solve method.
     # Any other methods that you write should be used within the solve() method.
+
+    def preprocess(self):
+        constraint_queue = list()
+        for v in self.variables:
+            for neighbour in self.neighbours[v]:
+                constraint_queue.append((v, neighbour))
+
+        while len(constraint_queue) != 0:
+            arc = constraint_queue.pop(0)
+            if self.revise(arc[0], arc[1]):
+                if len(self.domains[arc[0]]) == 0:
+                    return False
+                for n in self.neighbours[arc[0]]:
+                    if n != arc[1] and (arc[0], n) not in constraint_queue:
+                        constraint_queue.append((arc[0], n))
+        return True
+
+    def revise(self, v1, v2):
+        revised = False
+        for d1 in self.domains[v1]:
+            if len(self.domains[v2]) == 1 and d1 in self.domains[v2]:
+                self.domains[v1].remove(d1)
+                revised = True
+        return revised 
+
+    def is_solved(self):
+        solved = True
+        for v in self.variables:
+            if len(self.domains[v]) != 1:
+                solved = False
+        return solved
+
     
     #checks if a value assigned is valid
     def isValid(self, assignment, var, val):
